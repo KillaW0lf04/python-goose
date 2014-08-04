@@ -41,6 +41,27 @@ A_HREF_TAG_SELECTOR = "a[href*='/tag/'], a[href*='/tags/'], a[href*='/topic/'], 
 RE_LANG = r'^[A-Za-z]{2}$'
 
 
+def contains(node, child):
+    for e in node.getchildren():
+        if e == child:
+            return True
+        elif contains(e, child):
+            return True
+    return False
+
+
+def count_contains(node, child_list):
+    result = []
+    for e in node.getchildren():
+        for c in child_list:
+            if c == e:
+                result.append(e)
+            elif contains(e, c):
+                result.append(e)
+                break
+    return result
+
+
 class ContentExtractor(object):
 
     def __init__(self, config, article):
@@ -238,24 +259,45 @@ class ContentExtractor(object):
         starting_boost = float(1.0)
         cnt = 0
         i = 0
-        parent_nodes = []
-        nodes_with_text = []
+        parent_nodes = set()
+        nodes_with_text = set()
 
         for node in nodes_to_check:
             text_node = self.parser.getText(node)
             word_stats = self.stopwords_class(language=self.language).get_stopword_count(text_node)
             high_link_density = self.is_highlink_density(node)
             if word_stats.get_stopword_count() > 2 and not high_link_density:
-                nodes_with_text.append(node)
+                nodes_with_text.add(node)
 
         nodes_number = len(nodes_with_text)
         negative_scoring = 0
         bottom_negativescore_nodes = float(nodes_number) * 0.25
 
+        # Should clean the document first!
+        # Performance wise this could deff be made more efficient
+        for node in nodes_with_text:
+            # Recursively traverse the tree - bottom up
+            parent = node.getparent()
+            while parent is not None:
+                results = count_contains(parent, nodes_with_text)
+
+                # Remove useless node
+                prev_parent = parent
+                parent = parent.getparent()
+                if len(results) == 1 and parent is not None:
+                    parent.remove(prev_parent)
+                    parent.append(results[0])
+                elif len(results) == 0:
+                    parent.remove(prev_parent)
+                else:
+                    for child in prev_parent.getchildren():
+                        if child not in results:
+                            prev_parent.remove(child)
+
         for node in nodes_with_text:
             boost_score = float(0)
             # boost
-            if(self.is_boostable(node)):
+            if self.is_boostable(node):
                 if cnt >= 0:
                     boost_score = float((1.0 / starting_boost) * 50)
                     starting_boost += 1
@@ -277,16 +319,15 @@ class ContentExtractor(object):
             self.update_score(parent_node, upscore)
             self.update_node_count(parent_node, 1)
 
-            if parent_node not in parent_nodes:
-                parent_nodes.append(parent_node)
+            # Add to parents node set (unique)
+            parent_nodes.add(parent_node)
 
-            # parentparent node
+            # grandparent node
             parent_parent_node = self.parser.getParent(parent_node)
             if parent_parent_node is not None:
                 self.update_node_count(parent_parent_node, 1)
-                self.update_score(parent_parent_node, upscore / 2)
-                if parent_parent_node not in parent_nodes:
-                    parent_nodes.append(parent_parent_node)
+                self.update_score(parent_parent_node, int(upscore / 1.5))
+                parent_nodes.add(parent_parent_node)
             cnt += 1
             i += 1
 
