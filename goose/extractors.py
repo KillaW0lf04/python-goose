@@ -316,20 +316,21 @@ class ContentExtractor(object):
 
             # parent node
             parent_node = self.parser.getParent(node)
-            self.update_score(parent_node, upscore)
-            self.update_node_count(parent_node, 1)
+            if parent_node is not None:
+                self.update_score(parent_node, upscore)
+                self.update_node_count(parent_node, 1)
 
-            # Add to parents node set (unique)
-            parent_nodes.add(parent_node)
+                # Add to parents node set (unique)
+                parent_nodes.add(parent_node)
 
-            # grandparent node
-            parent_parent_node = self.parser.getParent(parent_node)
-            if parent_parent_node is not None:
-                self.update_node_count(parent_parent_node, 1)
-                self.update_score(parent_parent_node, int(upscore / 1.5))
-                parent_nodes.add(parent_parent_node)
-            cnt += 1
-            i += 1
+                # grandparent node
+                parent_parent_node = self.parser.getParent(parent_node)
+                if parent_parent_node is not None:
+                    self.update_node_count(parent_parent_node, 1)
+                    self.update_score(parent_parent_node, int(upscore / 1.5))
+                    parent_nodes.add(parent_parent_node)
+                cnt += 1
+                i += 1
 
         top_node_score = 0
         for e in parent_nodes:
