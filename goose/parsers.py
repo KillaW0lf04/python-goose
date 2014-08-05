@@ -20,12 +20,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import re
 import lxml.html
 from lxml.html import soupparser
 from lxml import etree
 from copy import deepcopy
 from goose.text import innerTrim
 from goose.text import encodeValue
+
+
+encoding_pattern = re.compile(' encoding=[\'"][\w-]+[\'"]')
 
 
 class Parser(object):
@@ -51,6 +55,7 @@ class Parser(object):
     @classmethod
     def fromstring(self, html):
         html = encodeValue(html)
+        html = encoding_pattern.sub('', html)
         self.doc = lxml.html.fromstring(html)
         return self.doc
 
