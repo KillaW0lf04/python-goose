@@ -513,7 +513,7 @@ class ContentExtractor(object):
         on like paragraphs and tables
         """
         nodes_to_check = []
-        for tag in ['p', 'pre', 'td']:
+        for tag in ('p', 'pre', 'td', 'blockquote'):
             items = self.parser.getElementsByTag(doc, tag=tag)
             nodes_to_check += items
         return nodes_to_check
