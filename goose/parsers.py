@@ -181,8 +181,11 @@ class Parser(object):
 
     @classmethod
     def getText(self, node):
-        txts = [i for i in node.itertext()]
-        return innerTrim(u' '.join(txts).strip())
+        try:
+            txts = [i for i in node.itertext()]
+            return innerTrim(u' '.join(txts).strip())
+        except ValueError:
+            return None
 
     @classmethod
     def previousSiblings(self, node):
